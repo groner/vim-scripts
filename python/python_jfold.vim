@@ -47,10 +47,30 @@ let s:defpat = '^\s*\(class\s.*:\|def\s\)'
 setlocal foldmethod=expr
 setlocal foldexpr=GetPythonFold(v:lnum)
 setlocal foldtext=PythonFoldText()
+let b:python_foldtext_decorators = [ '@expose' ]
 
 function! PythonFoldText()
-  let line = getline(v:foldstart)
-  let nnum = nextnonblank(v:foldstart + 1)
+  let lnum = v:foldstart
+  let decorators = []
+  while getline(lnum) =~ '^\s*@\w\+'
+    " There may be more to the decorator, but we only have one line to fit
+    " this stuff in, so just inidcate the presence of the decorator
+    " try
+	for pat in b:python_foldtext_decorators
+	    let decorator = matchstr(getline(lnum), pat)
+	    if decorator != ''
+		let decorators += [ decorator ]
+		break
+	    endif
+	endfor
+    " catch /^Vim(\a\+):E121:/
+	" Undefined variable
+	" let decorators += [ '@hi' ]
+    " endtry
+    let lnum = lnum + 1
+  endwhile
+  let line = join(map(decorators, 'v:val." "')).getline(lnum)
+  let nnum = nextnonblank(lnum + 1)
   let nextline = getline(nnum)
   "get the document string: next line is ''' or """
   if nextline =~ "^\\s\\+[\"']\\{3}\\s*$"
@@ -140,6 +160,18 @@ function! GetPythonFold(lnum)
     while p>0 && (getline(p) =~ '^\s*#' || b:startsInMultilineString(p)) | let p = prevnonblank(p-1)
     endwhile
     let pind = indent(p)
+
+    " Decorator, treat it like the def that should follow
+    if line =~ '^\s*@\w\+' || line =~ s:defpat
+	if getline(p) =~ '^\s*@\w\+' || getline(p) =~ s:defpat
+	    " Continued start of a definition
+	    return ind / &shiftwidth + 1
+	else
+	    " Case D***: class and def start a fold
+	    return ">" . (ind / &shiftwidth + 1)
+	endif
+    endif
+
     " If previous was definition: count as one level deeper
     if getline(p) =~ s:defpat
         let pind = pind + &shiftwidth
