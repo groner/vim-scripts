@@ -57,14 +57,26 @@ syn keyword pythonTodo		TODO FIXME XXX contained
 syn match   pythonDecorator	"@" display nextgroup=pythonFunction skipwhite
 
 " strings
-syn region pythonString		matchgroup=Normal start=+[uU]\='+ end=+'+ skip=+\\\\\|\\'+ contains=pythonEscape,@Spell
-syn region pythonString		matchgroup=Normal start=+[uU]\="+ end=+"+ skip=+\\\\\|\\"+ contains=pythonEscape,@Spell
-syn region pythonString		matchgroup=Normal start=+[uU]\="""+ end=+"""+ contains=pythonEscape,@Spell
-syn region pythonString		matchgroup=Normal start=+[uU]\='''+ end=+'''+ contains=pythonEscape,@Spell
-syn region pythonRawString	matchgroup=Normal start=+[uU]\=[rR]'+ end=+'+ skip=+\\\\\|\\'+ contains=@Spell
-syn region pythonRawString	matchgroup=Normal start=+[uU]\=[rR]"+ end=+"+ skip=+\\\\\|\\"+ contains=@Spell
-syn region pythonRawString	matchgroup=Normal start=+[uU]\=[rR]"""+ end=+"""+ contains=@Spell
-syn region pythonRawString	matchgroup=Normal start=+[uU]\=[rR]'''+ end=+'''+ contains=@Spell
+" syn region pythonString		matchgroup=Normal start=+[uU]\='+ end=+'+ skip=+\\\\\|\\'+ contains=pythonEscape,@Spell
+" syn region pythonString		matchgroup=Normal start=+[uU]\="+ end=+"+ skip=+\\\\\|\\"+ contains=pythonEscape,@Spell
+" syn region pythonString		matchgroup=Normal start=+[uU]\="""+ end=+"""+ contains=pythonEscape,@Spell
+" syn region pythonString		matchgroup=Normal start=+[uU]\='''+ end=+'''+ contains=pythonEscape,@Spell
+" syn region pythonRawString	matchgroup=Normal start=+[uU]\=[rR]'+ end=+'+ skip=+\\\\\|\\'+ contains=@Spell
+" syn region pythonRawString	matchgroup=Normal start=+[uU]\=[rR]"+ end=+"+ skip=+\\\\\|\\"+ contains=@Spell
+" syn region pythonRawString	matchgroup=Normal start=+[uU]\=[rR]"""+ end=+"""+ contains=@Spell
+" syn region pythonRawString	matchgroup=Normal start=+[uU]\=[rR]'''+ end=+'''+ contains=@Spell
+
+" Modification to the python syntax in vim 7.2 to better distinguish strings
+" and multiline strings.  The folding routines rely on the new classes to
+" work.
+syn region pythonString			matchgroup=Normal start=+[uU]\='+ end=+'+ skip=+\\\\\|\\'+ contains=pythonEscape,@Spell oneline 
+syn region pythonString			matchgroup=Normal start=+[uU]\="+ end=+"+ skip=+\\\\\|\\"+ contains=pythonEscape,@Spell oneline 
+syn region pythonMultilineString	matchgroup=MultilineStringStart start=+[uU]\="""+ matchgroup=MultilineStringEnd end=+"""+ contains=pythonEscape,@Spell 
+syn region pythonMultilineString	matchgroup=MultilineStringStart start=+[uU]\='''+ matchgroup=MultilineStringEnd end=+'''+ contains=pythonEscape,@Spell  
+syn region pythonRawString		matchgroup=Normal start=+[uU]\=[rR]'+ end=+'+ skip=+\\\\\|\\'+ contains=@Spell oneline 
+syn region pythonRawString		matchgroup=Normal start=+[uU]\=[rR]"+ end=+"+ skip=+\\\\\|\\"+ contains=@Spell oneline 
+syn region pythonMultilineRawString	matchgroup=MultilineStringStart start=+[uU]\=[rR]"""+ matchgroup=MultilineStringEnd end=+"""+ contains=@Spell 
+syn region pythonMultilineRawString	matchgroup=MultilineStringStart start=+[uU]\=[rR]'''+ matchgroup=MultilineStringEnd end=+'''+ contains=@Spell 
 syn match  pythonEscape		+\\[abfnrtv'"\\]+ contained
 syn match  pythonEscape		"\\\o\{1,3}" contained
 syn match  pythonEscape		"\\x\x\{2}" contained
@@ -139,6 +151,7 @@ syn sync match pythonSync grouphere NONE "):$"
 syn sync maxlines=200
 "syn sync minlines=2000
 
+
 if version >= 508 || !exists("did_python_syn_inits")
   if version <= 508
     let did_python_syn_inits = 1
@@ -160,6 +173,15 @@ if version >= 508 || !exists("did_python_syn_inits")
   HiLink pythonComment		Comment
   HiLink pythonTodo		Todo
   HiLink pythonDecorator	Define
+
+  " These could be somewhere more general, but right now they're not
+  HiLink MultilineString	String
+  HiLink MultilineStringStart	String 
+  HiLink MultilineStringEnd	String 
+
+  HiLink pythonMultilineString	pythonString
+  HiLink pythonMultilineRawString pythonRawString
+
   if exists("python_highlight_numbers")
     HiLink pythonNumber	Number
   endif
