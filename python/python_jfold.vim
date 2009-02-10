@@ -84,6 +84,8 @@ function! GetBlockIndent(lnum)
         let p = p - 1
         " skip empty and comment lines
         if getline(p) =~ '^$\|^\s*#' | continue
+	" look for multiline strings
+        elseif b:startsInMultilineString(p) | continue
         " zero-level regular line
         elseif indent(p) == 0 | return 0
         " skip deeper or equal lines
@@ -109,19 +111,33 @@ function! PrintIfCount(n,t)
     endif
 endfunction
 
+
+" Return true if the start of a line has the syntax class
+" pythonMultilineString or pythonMultilineRawString or MultilineStringEnd
+function! b:startsInMultilineString(lnum)
+    let l:syntaxItems = synstack(a:lnum, 1)
+    if type(l:syntaxItems)==type([])
+	let l:syntaxItemNames = map(l:syntaxItems, 'synIDattr(v:val, "name")')
+	if type(l:syntaxItemNames)==type([]) " I hate this
+	    if index(l:syntaxItemNames, 'pythonMultilineString') != -1 || index(l:syntaxItemNames, 'pythonMultilineRawString') != -1 || index(l:syntaxItemNames, 'MultilineStringEnd') != -1
+		return 1
+	    endif
+	endif
+    endif
+endf
+
 function! GetPythonFold(lnum)
     " Determine folding level in Python source (see "higher foldlevel theory" below)
     let line = getline(a:lnum)
     let ind = indent(a:lnum)
-    " Case D***: class and def start a fold
-    if line =~ s:defpat | return ">" . (ind / &shiftwidth + 1)
+
     " Case E***: empty lines fold with previous
     " (***) change '=' to -1 if you want empty lines/comment out of a fold
-    elseif line == '' | return '='
+    if line == '' || b:startsInMultilineString(a:lnum) | return '='
     endif
     " now we need the indent from previous
     let p = prevnonblank(a:lnum-1)
-    while p>0 && getline(p) =~ '^\s*#' | let p = prevnonblank(p-1)
+    while p>0 && (getline(p) =~ '^\s*#' || b:startsInMultilineString(p)) | let p = prevnonblank(p-1)
     endwhile
     let pind = indent(p)
     " If previous was definition: count as one level deeper
