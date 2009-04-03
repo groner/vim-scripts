@@ -1,0 +1,101 @@
+set hidden
+set nowrap
+set ai
+set ic
+set sm
+set mouse=a
+set sw=4
+set number
+set laststatus=2
+set formatoptions+=ro
+set enc=utf-8
+set guifont=Bitstream\ Vera\ Sans\ Mono\ 6
+set guioptions-=t
+set guioptions-=T
+set guioptions-=m
+
+colorscheme zenburn
+
+filetype on
+filetype plugin on
+syntax on
+
+ru macros/matchit.vim
+
+autocmd BufNewFile,BufRead COMMIT_EDITMSG set filetype=gitcommit
+
+" Make gf sequence look for kid templates
+autocmd BufNewFile,BufRead *.py set suffixesadd+=.kid
+
+" Because xhtml mode is more html than xml ...
+autocmd BufNewFile,BufRead *.kid set ft=xml
+
+" THBTBT! filetype detection in scripts.vim always resets
+" formatoptions nocindent and comments
+autocmd FileType * set fo+=ro
+
+let maplocalleader=","
+
+let javascript_fold=1
+let javascript_enable_domhtmlcss=1
+
+
+function! GuiFontDOWN()
+   let &guifont=substitute(&guifont, '\d\+', '\=submatch(0)-1', '')
+endf
+nmap <M--> :call GuiFontDOWN()<CR>
+
+function! GuiFontUP()
+   let &guifont=substitute(&guifont, '\d\+', '\=submatch(0)+1', '')
+endf
+nmap <M-=> :call GuiFontUP()<CR>
+
+" Return a comma separated list of syntax item names at the cursor location
+function! CurrentSyntaxItems()
+    let l:syntaxItems = synstack(line('.'), col('.'))
+    if type(l:syntaxItems)==type([])
+	let l:syntaxItemNames = map(l:syntaxItems, 'synIDattr(v:val, "name")')
+	if type(l:syntaxItemNames)==type([]) " I hate this
+	    return join(l:syntaxItemNames, ",")
+	endif
+    endif
+    return ''
+endf
+
+" Basically the standard statusline + syntax item names
+set statusline=%<%f\ %h%m%r%=%{CurrentSyntaxItems()}\ %-14.(%l,%c%V%)\ %P
+
+
+" Function to run emerge -pv + argument and try to extract
+" keyword masked packages from the output and create a stanza
+" summarizing the failure with suggested remedy.
+function! EmergeP(target)
+    let emerge_out=system("emerge -pv " . a:target)
+    let emerge_hash=system('sha1sum', emerge_out)[0:39]
+    if search('^# \<' . emerge_hash . '\>', 'bcnw')
+	throw 'emerge output not changed'
+    endif
+    let @@='# ' . emerge_hash | put
+    for emerge_line in split(emerge_out, '\n')
+	let m=matchlist(emerge_line, '^!!! All ebuilds that could satisfy "\(.*\)" have been masked\.')
+	if len(m) | let @@='# ' . m[1] | put | endif
+	let m=matchlist(emerge_line, '^emerge: there are no ebuilds to satisfy "\(.*\)".')
+	if len(m) | let @@='# ' . m[1] | put | endif
+	let m=matchlist(emerge_line, '^- \(.*\) (masked by: \(.*\))')
+	if len(m) | let @@='# ' . m[0] | put | endif
+	if len(m) && m[2] =~ 'keyword'
+	    let bestbet=m[1]
+	endif
+    endfor
+    if exists('bestbet')
+	let m=matchlist(bestbet, '\(.*-\d\+\.\d\+\)\(\.\d\+\w*\)*\(-r\d\+\)\?$')
+	if len(m)
+	    let @@='=' . m[1] . '*' | put
+	else
+	    let @@='=' . bestbet . ' ???' | put
+	endif
+    endif
+    let @@='' | put
+endf
+command! -nargs=1 EmergeP call EmergeP(<q-args>)
+
