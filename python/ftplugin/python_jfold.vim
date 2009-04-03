@@ -105,7 +105,7 @@ function! GetBlockIndent(lnum)
         " skip empty and comment lines
         if getline(p) =~ '^$\|^\s*#' | continue
 	" look for multiline strings
-        elseif b:startsInMultilineString(p) | continue
+        elseif b:startsInMultilineExpression(p) | continue
         " zero-level regular line
         elseif indent(p) == 0 | return 0
         " skip deeper or equal lines
@@ -133,13 +133,15 @@ endfunction
 
 
 " Return true if the start of a line has the syntax class
-" pythonMultilineString or pythonMultilineRawString or MultilineStringEnd
-function! b:startsInMultilineString(lnum)
+" pythonMultilineString or pythonMultilineRawString or MultilineStringEnd or
+" pythonList or pythonTuple or pythonCall or pythonSubscript 
+" list/generator/dictionary comprehensions are not handled yet
+function! b:startsInMultilineExpression(lnum)
     let l:syntaxItems = synstack(a:lnum, 1)
     if type(l:syntaxItems)==type([])
 	let l:syntaxItemNames = map(l:syntaxItems, 'synIDattr(v:val, "name")')
 	if type(l:syntaxItemNames)==type([]) " I hate this
-	    if index(l:syntaxItemNames, 'pythonMultilineString') != -1 || index(l:syntaxItemNames, 'pythonMultilineRawString') != -1 || index(l:syntaxItemNames, 'MultilineStringEnd') != -1
+	    if index(l:syntaxItemNames, 'pythonMultilineString') != -1 || index(l:syntaxItemNames, 'pythonMultilineRawString') != -1 || index(l:syntaxItemNames, 'MultilineStringEnd') != -1 || index(l:syntaxItemNames, 'pythonTuple') != -1 || index(l:syntaxItemNames, 'pythonList') != -1 || index(l:syntaxItemNames, 'pythonCall') != -1 || index(l:syntaxItemNames, 'pythonSubscript') != -1
 		return 1
 	    endif
 	endif
@@ -153,11 +155,11 @@ function! GetPythonFold(lnum)
 
     " Case E***: empty lines fold with previous
     " (***) change '=' to -1 if you want empty lines/comment out of a fold
-    if line == '' || b:startsInMultilineString(a:lnum) | return '='
+    if line == '' || b:startsInMultilineExpression(a:lnum) | return '='
     endif
     " now we need the indent from previous
     let p = prevnonblank(a:lnum-1)
-    while p>0 && (getline(p) =~ '^\s*#' || b:startsInMultilineString(p)) | let p = prevnonblank(p-1)
+    while p>0 && (getline(p) =~ '^\s*#' || b:startsInMultilineExpression(p)) | let p = prevnonblank(p-1)
     endwhile
     let pind = indent(p)
 

@@ -44,7 +44,8 @@ syn keyword pythonStatement	return try with
 syn keyword pythonStatement	global assert
 syn keyword pythonStatement	lambda yield
 syn keyword pythonStatement	def class nextgroup=pythonFunction skipwhite
-syn match   pythonFunction	"[a-zA-Z_][a-zA-Z0-9_]*" contained
+syn match   pythonFunction	"[a-zA-Z_][a-zA-Z0-9_]*" contained nextgroup=pythonCall
+syn match   pythonSymbol	"[a-zA-Z_][a-zA-Z0-9_]*" nextgroup=pythonSubscript,pythonCall,pythonOperator,pythonComma,pythonColon skipwhite
 syn keyword pythonRepeat	for while
 syn keyword pythonConditional	if elif else
 syn keyword pythonOperator	and in is not or
@@ -82,6 +83,28 @@ syn match  pythonEscape		"\\\o\{1,3}" contained
 syn match  pythonEscape		"\\x\x\{2}" contained
 syn match  pythonEscape		"\(\\u\x\{4}\|\\U\x\{8}\)" contained
 syn match  pythonEscape		"\\$"
+
+syn match  pythonOperator	'\(==\|>=\|>\|<=\|<\|\*\*=\|\*\*\|+=\|+\|-=\|-\|\*=\|\*\|/=\|/\|%=\|%\|=\|\.\)' nextgroup=@pythonExpr skipwhite
+syn match  pythonComma		',' contained nextgroup=@pythonExpr skipwhite
+syn match  pythonColon		':' contained nextgroup=@pythonExpr skipwhite
+
+syn region pythonList		start='\(\w\s*\)\@<!\[' end=']' contains=pythonExprs
+syn region pythonTuple		start='\(\w\s*\)\@<!(' end=')'  contains=pythonExprs
+syn region pythonDict		start='\(\w\s*\)\@<!{' end='}'  contains=@pythonDictPairs
+
+" Not sure how to implement these ...
+" syn region pythonListComp	start='\[' end=']' contains=sfhsafhiwefa
+" syn region pythonGenComp	start='(' end=')'  contains=sfhsafhiwefa
+" syn region pythonDictComp	start='{' end='}'  contains=sfhsafhiwefa
+
+syn region pythonSubscript	start='\[' end=']' contained contains=@pythonExpr,pythonColon keepend
+syn region pythonCall		start='(' end=')' contained contains=@pythonExpr,pythonComma
+
+syn cluster pythonStrings	add=pythonString,pythonMultilineString,pythonRawString,pythonMultilineRawString
+syn cluster pythonSeq		add=pythonList,pythonTuple,pythonDict
+syn cluster pythonSeq		add=pythonListComp,pythonGenComp,pythonDictComp
+syn cluster pythonExpr		add=@pythonStrings,pythonNumber,@pythonSeq,pythonSymbol
+
 
 if exists("python_highlight_all")
   let python_highlight_numbers = 1
